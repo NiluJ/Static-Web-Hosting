@@ -8,15 +8,18 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Upload to Azure Blob Storage
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            az storage blob upload-batch \
-              --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
-              --destination '$web' \
-              --source .
+      - name: Install AzCopy
+        run: |
+          curl -sL https://aka.ms/downloadazcopy-v10-linux | tar -xz
+          sudo cp azcopy_linux_amd64_*/azcopy /usr/bin/
+
+      - name: Upload files to Azure Blob Storage
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          azcopy copy "." "https://${{ secrets.AZURE_STORAGE_ACCOUNT }}.blob.core.windows.net/$web" --recursive
